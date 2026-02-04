@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="description" content="OSRS Herb Run Profit Calculator - Calculate profit from herb farming runs">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OSRS Herbs">
+
+    <title>OSRS Herb Profit Calculator</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>🌿 OSRS Herb Profit</h1>
+            <div class="header-info">
+                <span class="info-badge">10 seeds</span>
+                <span class="info-badge">92 yield</span>
+            </div>
+        </div>
+        <button id="refreshBtn" class="refresh-btn">
+            <span class="refresh-icon">↻</span> Refresh
+        </button>
+    </header>
+
+    <!-- Status Bar -->
+    <div id="statusBar" class="status-bar">
+        <span id="statusText">Tap refresh to load prices</span>
+        <span id="lastUpdated" class="last-updated"></span>
+    </div>
+
+    <!-- Sort Controls -->
+    <div class="sort-controls">
+        <label for="sortSelect">Sort by:</label>
+        <select id="sortSelect" class="sort-select">
+            <option value="profit">Profit (High to Low)</option>
+            <option value="roi">ROI % (High to Low)</option>
+            <option value="name">Herb Name (A-Z)</option>
+            <option value="seed_price">Seed Price (Low to High)</option>
+        </select>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+        <p>Loading prices...</p>
+    </div>
+
+    <!-- Herbs Container -->
+    <main id="herbsContainer" class="herbs-container">
+        <!-- Herb cards will be inserted here by JavaScript -->
+    </main>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="error-message hidden">
+        <p>Failed to load prices. Please check your connection and try again.</p>
+        <button onclick="loadPrices()" class="retry-btn">Retry</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-text">
+            Profit = (92 × Unf. Potion Price) - (10 × Seed Price)
+        </p>
+        <p class="footer-credit">
+            Data from <a href="https://prices.runescape.wiki" target="_blank">OSRS Wiki</a>
+        </p>
+    </footer>
+
+    <!-- Install Prompt (for PWA) -->
+    <div id="installPrompt" class="install-prompt hidden">
+        <div class="install-content">
+            <p>📱 Install this app for quick access!</p>
+            <button id="installBtn" class="install-btn">Install</button>
+            <button id="dismissInstall" class="dismiss-btn">Not now</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
