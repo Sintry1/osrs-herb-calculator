@@ -2,7 +2,7 @@
   "name": "OSRS Herb Profit Calculator",
   "short_name": "OSRS Herbs",
   "description": "Calculate profit from OSRS herb farming runs with real-time Grand Exchange prices",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#2c3e50",
   "theme_color": "#2c3e50",
