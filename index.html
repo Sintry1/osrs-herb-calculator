@@ -22,8 +22,8 @@
         <div class="header-content">
             <h1>🌿 OSRS Herb Profit</h1>
             <div class="header-info">
-                <span class="info-badge">10 seeds</span>
-                <span class="info-badge">92 yield</span>
+                <span class="info-badge" id="patchesDisplay">10 patches</span>
+                <span class="info-badge" id="yieldDisplay">92 avg yield</span>
             </div>
         </div>
         <button id="refreshBtn" class="refresh-btn">
@@ -35,6 +35,100 @@
     <div id="statusBar" class="status-bar">
         <span id="statusText">Tap refresh to load prices</span>
         <span id="lastUpdated" class="last-updated"></span>
+    </div>
+
+    <!-- Parameters Panel -->
+    <div class="parameters-panel">
+        <button id="toggleParams" class="toggle-params-btn">
+            ⚙️ Farming Parameters <span id="toggleIcon">▼</span>
+        </button>
+
+        <div id="paramsContent" class="params-content hidden">
+            <div class="param-group">
+                <label for="farmingLevel">Farming Level: <span id="farmingLevelValue">99</span></label>
+                <input type="range" id="farmingLevel" min="1" max="99" value="99" class="param-slider">
+            </div>
+
+            <div class="param-group">
+                <label for="numPatches">Total Patches: <span id="numPatchesValue">10</span></label>
+                <input type="range" id="numPatches" min="1" max="10" value="10" class="param-slider">
+                <small class="param-hint">Includes all selected patches below</small>
+            </div>
+
+            <div class="param-group">
+                <label for="compostType">Compost Type:</label>
+                <select id="compostType" class="param-select">
+                    <option value="0">None</option>
+                    <option value="1">Compost</option>
+                    <option value="2">Supercompost</option>
+                    <option value="3" selected>Ultracompost</option>
+                </select>
+            </div>
+
+            <div class="param-group checkboxes">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="magicSecateurs" checked>
+                    <span>Magic Secateurs (+10%)</span>
+                </label>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="farmingCape" checked>
+                    <span>Farming Cape (+5%)</span>
+                </label>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="attasSeed" checked>
+                    <span>Attas Seed (+5%)</span>
+                </label>
+            </div>
+
+            <div class="param-group">
+                <label for="kandarinDiary">Kandarin Diary:</label>
+                <select id="kandarinDiary" class="param-select">
+                    <option value="0">None</option>
+                    <option value="10" selected>Medium (+5%)</option>
+                    <option value="17">Hard (+10%)</option>
+                    <option value="25">Elite (+15%)</option>
+                </select>
+                <small class="param-hint">Includes Catherby patch with bonus</small>
+            </div>
+
+            <div class="param-group checkboxes">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="kourendDiary" checked>
+                    <span>Kourend & Kebos Hard Diary</span>
+                </label>
+                <small class="param-hint">Includes Farming Guild (+5%) and affects Hosidius</small>
+            </div>
+
+            <div class="param-group">
+                <label style="font-weight: 700; margin-bottom: 0.5rem; display: block;">Protected Patches (0% Death):</label>
+                <div class="param-group checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="patchWeiss" checked>
+                        <span>Weiss</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="patchTrollheim" checked>
+                        <span>Trollheim</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="patchHarmony" checked>
+                        <span>Harmony Island</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="patchHosidius" checked>
+                        <span>Hosidius (+ Kourend diary if enabled)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="patchCivitas">
+                        <span>Civitas Illa Fortis (Colosseum unlock)</span>
+                    </label>
+                </div>
+                <small class="param-hint">Disease-free patches never die</small>
+            </div>
+
+        </div>
     </div>
 
     <!-- Sort Controls -->
@@ -67,11 +161,12 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p class="footer-text">
-            Profit = (92 × Unf. Potion Price) - (10 × Seed Price)
+        <p class="footer-text" id="formulaText">
+            Profit = (Yield × Unf. Potion Price) - (Patches × Seed Price)
         </p>
         <p class="footer-credit">
-            Data from <a href="https://prices.runescape.wiki" target="_blank">OSRS Wiki</a>
+            Data from <a href="https://prices.runescape.wiki" target="_blank">OSRS Wiki</a> |
+            Yield formula from <a href="https://oldschool.runescape.wiki/w/Calculator:Farming/Herbs" target="_blank">OSRS Farming Calculator</a>
         </p>
     </footer>
 
