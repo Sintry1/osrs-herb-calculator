@@ -550,7 +550,7 @@ function updateDisplays() {
 
         if (herbsData.length > 0) {
             const avgTotalYield = herbsData.reduce((sum, herb) => sum + herb.totalYield, 0) / herbsData.length;
-            yieldDisplay.textContent = `${avgTotalYield.toFixed(1)} avg yield`;
+            yieldDisplay.textContent = `${Math.round(avgTotalYield)} avg yield`;
         }
 
         const compostNames = ['None', 'Compost', 'Supercompost', 'Ultracompost'];
@@ -563,7 +563,7 @@ function updateDisplays() {
 
         if (coralData.length > 0) {
             const avgYield = coralData.reduce((sum, c) => sum + c.totalYield, 0) / coralData.length;
-            yieldDisplay.textContent = `${avgYield.toFixed(1)} avg yield`;
+            yieldDisplay.textContent = `${Math.round(avgYield)} avg yield`;
         }
 
         formulaText.textContent = `Lvl ${farmingParams.level} | 4 lives (fixed) | No compost bonus`;
@@ -615,7 +615,7 @@ function createHerbCard(herb) {
         <div class="herb-details">
             <div class="detail-item">
                 <span class="detail-label">Total Yield</span>
-                <span class="detail-value">${herb.totalYield.toFixed(2)} (${avgYieldPerPatch.toFixed(2)}/patch avg)</span>
+                <span class="detail-value">${Math.round(herb.totalYield)} (${Math.round(avgYieldPerPatch)}/patch avg)</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Seed Price</span>
@@ -684,7 +684,7 @@ function createCoralCard(coral) {
         <div class="herb-details">
             <div class="detail-item">
                 <span class="detail-label">Total Yield</span>
-                <span class="detail-value">${coral.totalYield.toFixed(2)} (${coral.yieldPerPatch.toFixed(2)}/patch avg)</span>
+                <span class="detail-value">${Math.round(coral.totalYield)} (${Math.round(coral.yieldPerPatch)}/patch avg)</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Frag Price</span>
