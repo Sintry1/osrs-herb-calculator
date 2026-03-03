@@ -23,6 +23,16 @@ const HERB_DATA = [
     ['Torstol', 5304, 219, 269, 111, 71, 80]
 ];
 
+// Coral data: [name, fragId, coralId, lowCTS, highCTS, protectionItemId, protectionQtyPerPatch]
+const GIANT_SEAWEED_ID = 21504;
+const CORAL_DATA = [
+    ['Elkhorn coral', 31511, 31481,  100, 205, GIANT_SEAWEED_ID, 5],
+    ['Pillar coral',  31513, 31484,   48, 205, 31481,            5],
+    ['Umbral coral',  31515, 31487, -110, 205, 31484,            5],
+];
+const CORAL_HARVEST_LIVES = 4;
+const CORAL_NUM_PATCHES = 2;
+
 // Farming parameters (defaults)
 let farmingParams = {
     level: 99,
@@ -31,6 +41,7 @@ let farmingParams = {
     magicSecateurs: true,
     farmingCape: true,
     attasSeed: true,
+    coralProtection: true,
     // Diary bonuses
     kandarinDiaryBonus: 10, // 0, 10, 17, or 25 (None, Medium, Hard, Elite)
     kourendDiary: true, // Kourend & Kebos Hard completed
@@ -47,7 +58,9 @@ let farmingParams = {
 // Global state
 let priceData = {};
 let herbsData = [];
+let coralData = [];
 let currentSort = 'profit';
+let activeTab = 'herbs';
 
 // DOM Elements
 const refreshBtn = document.getElementById('refreshBtn');
@@ -55,6 +68,7 @@ const statusText = document.getElementById('statusText');
 const lastUpdated = document.getElementById('lastUpdated');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const herbsContainer = document.getElementById('herbsContainer');
+const coralContainer = document.getElementById('coralContainer');
 const errorMessage = document.getElementById('errorMessage');
 const sortSelect = document.getElementById('sortSelect');
 const installPrompt = document.getElementById('installPrompt');
@@ -94,7 +108,11 @@ let deferredPrompt;
 refreshBtn.addEventListener('click', loadPrices);
 sortSelect.addEventListener('change', (e) => {
     currentSort = e.target.value;
-    renderHerbs();
+    if (activeTab === 'herbs') {
+        renderHerbs();
+    } else {
+        renderCoral();
+    }
 });
 
 // Parameter toggle
@@ -169,6 +187,15 @@ patchHosidiusCheck.addEventListener('change', (e) => {
 
 patchCivitasCheck.addEventListener('change', (e) => {
     farmingParams.patches.civitas = e.target.checked;
+    updateCalculations();
+});
+
+// Tab navigation
+document.getElementById('tabHerbs').addEventListener('click', () => switchTab('herbs'));
+document.getElementById('tabCoral').addEventListener('click', () => switchTab('coral'));
+
+document.getElementById('coralProtection').addEventListener('change', (e) => {
+    farmingParams.coralProtection = e.target.checked;
     updateCalculations();
 });
 
@@ -335,6 +362,11 @@ function calculateTotalYield(lowCTS, highCTS) {
     return totalYield;
 }
 
+function calculateCoralTotalYield(lowCTS, highCTS) {
+    const chanceToSave = calculateChanceToSave(lowCTS, highCTS, farmingParams.level, 0);
+    return CORAL_HARVEST_LIVES / (1 - chanceToSave) * CORAL_NUM_PATCHES;
+}
+
 // Utility Functions
 function formatGP(amount) {
     if (!amount && amount !== 0) return 'N/A';
@@ -385,6 +417,7 @@ async function loadPrices() {
         setLoading(true);
         errorMessage.classList.add('hidden');
         herbsContainer.innerHTML = '';
+        coralContainer.innerHTML = '';
         statusText.textContent = 'Fetching prices...';
 
         // Fetch data from API
@@ -397,11 +430,13 @@ async function loadPrices() {
         const data = await response.json();
         priceData = data.data || {};
 
-        // Process herb data
+        // Process herb and coral data
         processHerbData();
+        processCoralData();
 
         // Update UI
         renderHerbs();
+        renderCoral();
         updateDisplays();
 
         // Update status
@@ -455,10 +490,36 @@ function processHerbData() {
     });
 }
 
+function processCoralData() {
+    coralData = [];
+
+    CORAL_DATA.forEach(([name, fragId, coralId, lowCTS, highCTS, protectionItemId, protectionQtyPerPatch]) => {
+        const fragPrice = getPrice(fragId);
+        const coralPrice = getPrice(coralId);
+        const protectionItemPrice = getPrice(protectionItemId);
+
+        if (fragPrice && coralPrice) {
+            const totalYield = calculateCoralTotalYield(lowCTS, highCTS);
+            const yieldPerPatch = totalYield / CORAL_NUM_PATCHES;
+            const investment = CORAL_NUM_PATCHES * fragPrice;
+            const protectionCost = farmingParams.coralProtection && protectionItemPrice
+                ? protectionItemPrice * protectionQtyPerPatch * CORAL_NUM_PATCHES
+                : 0;
+            const revenue = totalYield * coralPrice;
+            const profit = revenue - investment - protectionCost;
+            const roi = investment > 0 ? (profit / investment * 100) : 0;
+
+            coralData.push({ name, fragPrice, coralPrice, yieldPerPatch, totalYield, investment, protectionCost, profit, roi });
+        }
+    });
+}
+
 function updateCalculations() {
     if (Object.keys(priceData).length > 0) {
         processHerbData();
+        processCoralData();
         renderHerbs();
+        renderCoral();
         updateDisplays();
     }
 }
@@ -482,23 +543,31 @@ function getProtectedPatchCount() {
 }
 
 function updateDisplays() {
-    // Update header badges
-    const totalPatches = getTotalPatches();
-    const protectedCount = getProtectedPatchCount();
-    patchesDisplay.textContent = `${totalPatches} patches`;
+    if (activeTab === 'herbs') {
+        const totalPatches = getTotalPatches();
+        const protectedCount = getProtectedPatchCount();
+        patchesDisplay.textContent = `${totalPatches} patches`;
 
-    // Calculate average yield across all herbs
-    if (herbsData.length > 0) {
-        const avgTotalYield = herbsData.reduce((sum, herb) => sum + herb.totalYield, 0) / herbsData.length;
-        yieldDisplay.textContent = `${avgTotalYield.toFixed(1)} avg yield`;
+        if (herbsData.length > 0) {
+            const avgTotalYield = herbsData.reduce((sum, herb) => sum + herb.totalYield, 0) / herbsData.length;
+            yieldDisplay.textContent = `${avgTotalYield.toFixed(1)} avg yield`;
+        }
+
+        const compostNames = ['None', 'Compost', 'Supercompost', 'Ultracompost'];
+        const compostName = compostNames[farmingParams.compostType];
+        const deathRate = calculateDeathRate(farmingParams.compostType);
+        const deathRatePercent = (deathRate * 100).toFixed(1);
+        formulaText.textContent = `Lvl ${farmingParams.level} | ${compostName} | ${protectedCount} protected | ${deathRatePercent}% death`;
+    } else {
+        patchesDisplay.textContent = '2 patches';
+
+        if (coralData.length > 0) {
+            const avgYield = coralData.reduce((sum, c) => sum + c.totalYield, 0) / coralData.length;
+            yieldDisplay.textContent = `${avgYield.toFixed(1)} avg yield`;
+        }
+
+        formulaText.textContent = `Lvl ${farmingParams.level} | 4 lives (fixed) | No compost bonus`;
     }
-
-    // Update formula text
-    const compostNames = ['None', 'Compost', 'Supercompost', 'Ultracompost'];
-    const compostName = compostNames[farmingParams.compostType];
-    const deathRate = calculateDeathRate(farmingParams.compostType);
-    const deathRatePercent = (deathRate * 100).toFixed(1);
-    formulaText.textContent = `Lvl ${farmingParams.level} | ${compostName} | ${protectedCount} protected | ${deathRatePercent}% death`;
 }
 
 function sortHerbs() {
@@ -573,6 +642,91 @@ function createHerbCard(herb) {
     `;
 
     return card;
+}
+
+function sortCoral() {
+    switch (currentSort) {
+        case 'profit':
+            coralData.sort((a, b) => b.profit - a.profit);
+            break;
+        case 'roi':
+            coralData.sort((a, b) => b.roi - a.roi);
+            break;
+        case 'name':
+            coralData.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'seed_price':
+            coralData.sort((a, b) => a.fragPrice - b.fragPrice);
+            break;
+    }
+}
+
+function renderCoral() {
+    sortCoral();
+    coralContainer.innerHTML = '';
+    coralData.forEach(coral => {
+        coralContainer.appendChild(createCoralCard(coral));
+    });
+}
+
+function createCoralCard(coral) {
+    const card = document.createElement('div');
+    card.className = `herb-card ${coral.profit >= 0 ? 'profitable' : 'unprofitable'}`;
+
+    card.innerHTML = `
+        <div class="herb-header">
+            <h2 class="herb-name">${coral.name}</h2>
+            <div class="herb-profit ${coral.profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                ${formatProfit(coral.profit)}
+            </div>
+        </div>
+
+        <div class="herb-details">
+            <div class="detail-item">
+                <span class="detail-label">Total Yield</span>
+                <span class="detail-value">${coral.totalYield.toFixed(2)} (${coral.yieldPerPatch.toFixed(2)}/patch avg)</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Frag Price</span>
+                <span class="detail-value">${formatGP(coral.fragPrice)}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Coral Price</span>
+                <span class="detail-value">${formatGP(coral.coralPrice)}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Investment</span>
+                <span class="detail-value">${formatGP(coral.investment)}</span>
+            </div>
+            ${farmingParams.coralProtection ? `
+            <div class="detail-item">
+                <span class="detail-label">Protection</span>
+                <span class="detail-value">${formatGP(Math.round(coral.protectionCost))}</span>
+            </div>` : ''}
+        </div>
+
+        <div class="herb-footer">
+            <span class="roi-badge ${coral.roi >= 0 ? 'roi-positive' : 'roi-negative'}">
+                ROI: ${formatROI(coral.roi)}
+            </span>
+            <span class="investment-text">
+                Revenue: ${formatGP(Math.round(coral.totalYield * coral.coralPrice))}
+            </span>
+        </div>
+    `;
+
+    return card;
+}
+
+function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tabHerbs').classList.toggle('active', tab === 'herbs');
+    document.getElementById('tabCoral').classList.toggle('active', tab === 'coral');
+    herbsContainer.classList.toggle('hidden', tab !== 'herbs');
+    coralContainer.classList.toggle('hidden', tab !== 'coral');
+    document.getElementById('herbOnlyParams').classList.toggle('hidden', tab !== 'herbs');
+    document.getElementById('coralOnlyParams').classList.toggle('hidden', tab !== 'coral');
+    updateDisplays();
 }
 
 function setLoading(isLoading) {

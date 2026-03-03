@@ -252,7 +252,7 @@ body {
     gap: 0.75rem;
     border-bottom: 1px solid var(--border-color);
     position: sticky;
-    top: 146px;
+    top: 194px;
     z-index: 99;
 }
 
@@ -514,6 +514,35 @@ body {
     border-radius: 8px;
     font-size: 0.875rem;
     cursor: pointer;
+}
+
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 0.6rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    color: white;
+    border-bottom-color: white;
+}
+
+.tab-btn:hover {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 /* Responsive Design */

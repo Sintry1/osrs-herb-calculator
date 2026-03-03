@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="OSRS Herbs">
 
-    <title>OSRS Herb Profit Calculator</title>
+    <title>OSRS Farming Profit Calculator</title>
 
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -20,7 +20,7 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <h1>🌿 OSRS Herb Profit</h1>
+            <h1>OSRS Farming Profit</h1>
             <div class="header-info">
                 <span class="info-badge" id="patchesDisplay">10 patches</span>
                 <span class="info-badge" id="yieldDisplay">92 avg yield</span>
@@ -29,6 +29,11 @@
         <button id="refreshBtn" class="refresh-btn">
             <span class="refresh-icon">↻</span> Refresh
         </button>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" id="tabHerbs">🌿 Herbs</button>
+            <button class="tab-btn" id="tabCoral">🪸 Coral</button>
+        </div>
     </header>
 
     <!-- Status Bar -->
@@ -49,6 +54,7 @@
                 <input type="range" id="farmingLevel" min="1" max="99" value="99" class="param-slider">
             </div>
 
+            <div id="herbOnlyParams">
             <div class="param-group">
                 <label for="numPatches">Total Patches: <span id="numPatchesValue">10</span></label>
                 <input type="range" id="numPatches" min="1" max="10" value="10" class="param-slider">
@@ -127,6 +133,20 @@
                 </div>
                 <small class="param-hint">Disease-free patches never die</small>
             </div>
+            </div> <!-- end herbOnlyParams -->
+
+            <div id="coralOnlyParams" class="hidden">
+                <div class="param-group">
+                    <small class="param-hint">Coral nurseries have 2 fixed patches. Compost and diary bonuses do not apply.</small>
+                </div>
+                <div class="param-group checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="coralProtection" checked>
+                        <span>Pay protection</span>
+                    </label>
+                    <small class="param-hint">Deducts gardener payment per run (seaweed / lower-tier coral)</small>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -151,6 +171,11 @@
     <!-- Herbs Container -->
     <main id="herbsContainer" class="herbs-container">
         <!-- Herb cards will be inserted here by JavaScript -->
+    </main>
+
+    <!-- Coral Container -->
+    <main id="coralContainer" class="herbs-container hidden">
+        <!-- Coral cards will be inserted here by JavaScript -->
     </main>
 
     <!-- Error Message -->
