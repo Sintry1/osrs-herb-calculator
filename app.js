@@ -370,13 +370,14 @@ function calculateCoralTotalYield(lowCTS, highCTS) {
 // Utility Functions
 function formatGP(amount) {
     if (!amount && amount !== 0) return 'N/A';
-    return amount.toLocaleString() + ' gp';
+    return Math.round(amount).toLocaleString() + ' gp';
 }
 
 function formatProfit(profit) {
     if (!profit && profit !== 0) return 'N/A';
-    const sign = profit >= 0 ? '+' : '';
-    return sign + profit.toLocaleString() + ' gp';
+    const rounded = Math.round(profit);
+    const sign = rounded >= 0 ? '+' : '';
+    return sign + rounded.toLocaleString() + ' gp';
 }
 
 function formatROI(roi) {
