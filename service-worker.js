@@ -1,7 +1,7 @@
 // Service Worker for OSRS Herb Profit Calculator
 // Enables offline functionality and caching
 
-const CACHE_NAME = 'osrs-herb-calc-v1';
+const CACHE_NAME = 'osrs-herb-calc-v2';
 const urlsToCache = [
     '/',
     '/index.html',
