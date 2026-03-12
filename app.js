@@ -55,6 +55,47 @@ let farmingParams = {
     }
 };
 
+// Persistence
+const STORAGE_KEY = 'osrs_farming_params';
+
+function saveParams() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(farmingParams));
+}
+
+function loadParams() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Merge saved values onto defaults to handle new keys added in future
+            farmingParams = Object.assign({}, farmingParams, parsed, {
+                patches: Object.assign({}, farmingParams.patches, parsed.patches || {})
+            });
+        }
+    } catch (e) {
+        console.warn('Failed to load saved params:', e);
+    }
+}
+
+function syncUIToParams() {
+    farmingLevelInput.value = farmingParams.level;
+    farmingLevelValue.textContent = farmingParams.level;
+    numPatchesInput.value = farmingParams.numPatches;
+    numPatchesValue.textContent = farmingParams.numPatches;
+    compostTypeSelect.value = farmingParams.compostType;
+    magicSecateursCheck.checked = farmingParams.magicSecateurs;
+    farmingCapeCheck.checked = farmingParams.farmingCape;
+    attasSeedCheck.checked = farmingParams.attasSeed;
+    kandarinDiarySelect.value = farmingParams.kandarinDiaryBonus;
+    kourendDiaryCheck.checked = farmingParams.kourendDiary;
+    patchWeissCheck.checked = farmingParams.patches.weiss;
+    patchTrollheimCheck.checked = farmingParams.patches.trollheim;
+    patchHarmonyCheck.checked = farmingParams.patches.harmony;
+    patchHosidiusCheck.checked = farmingParams.patches.hosidius;
+    patchCivitasCheck.checked = farmingParams.patches.civitas;
+    document.getElementById('coralProtection').checked = farmingParams.coralProtection;
+}
+
 // Global state
 let priceData = {};
 let herbsData = [];
@@ -516,6 +557,7 @@ function processCoralData() {
 }
 
 function updateCalculations() {
+    saveParams();
     if (Object.keys(priceData).length > 0) {
         processHerbData();
         processCoralData();
@@ -757,7 +799,8 @@ if ('serviceWorker' in navigator) {
 
 // Load prices on app start
 window.addEventListener('load', () => {
-    // Auto-load prices when app opens
+    loadParams();
+    syncUIToParams();
     loadPrices();
 });
 
