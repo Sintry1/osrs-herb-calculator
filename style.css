@@ -412,6 +412,25 @@ body {
     color: var(--text-secondary);
 }
 
+/* Daily Stats Section */
+.daily-stats {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.daily-stats-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.daily-stats .herb-details {
+    margin-bottom: 0;
+}
+
 /* Error Message */
 .error-message {
     text-align: center;

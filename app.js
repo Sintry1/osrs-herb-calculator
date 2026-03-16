@@ -37,6 +37,7 @@ const CORAL_NUM_PATCHES = 2;
 let farmingParams = {
     level: 99,
     numPatches: 10, // Total patches
+    runsPerDay: 6,  // How many runs the player does per day (max 18 — herbs grow every 80 min)
     compostType: 3, // 0=none, 1=compost, 2=super, 3=ultra
     magicSecateurs: true,
     farmingCape: true,
@@ -82,6 +83,8 @@ function syncUIToParams() {
     farmingLevelValue.textContent = farmingParams.level;
     numPatchesInput.value = farmingParams.numPatches;
     numPatchesValue.textContent = farmingParams.numPatches;
+    runsPerDayInput.value = farmingParams.runsPerDay;
+    runsPerDayValue.textContent = farmingParams.runsPerDay;
     compostTypeSelect.value = farmingParams.compostType;
     magicSecateursCheck.checked = farmingParams.magicSecateurs;
     farmingCapeCheck.checked = farmingParams.farmingCape;
@@ -124,6 +127,8 @@ const farmingLevelInput = document.getElementById('farmingLevel');
 const farmingLevelValue = document.getElementById('farmingLevelValue');
 const numPatchesInput = document.getElementById('numPatches');
 const numPatchesValue = document.getElementById('numPatchesValue');
+const runsPerDayInput = document.getElementById('runsPerDay');
+const runsPerDayValue = document.getElementById('runsPerDayValue');
 const compostTypeSelect = document.getElementById('compostType');
 const magicSecateursCheck = document.getElementById('magicSecateurs');
 const farmingCapeCheck = document.getElementById('farmingCape');
@@ -172,6 +177,12 @@ farmingLevelInput.addEventListener('input', (e) => {
 numPatchesInput.addEventListener('input', (e) => {
     farmingParams.numPatches = parseInt(e.target.value);
     numPatchesValue.textContent = e.target.value;
+    updateCalculations();
+});
+
+runsPerDayInput.addEventListener('input', (e) => {
+    farmingParams.runsPerDay = parseInt(e.target.value);
+    runsPerDayValue.textContent = e.target.value;
     updateCalculations();
 });
 
@@ -646,6 +657,11 @@ function createHerbCard(herb) {
 
     const totalPatches = getTotalPatches();
     const avgYieldPerPatch = totalPatches > 0 ? herb.totalYield / totalPatches : 0;
+    const runs = farmingParams.runsPerDay;
+    const seedCostPerDay = herb.investment * runs;
+    const yieldPerDay = herb.totalYield * runs;
+    const profitPerDay = herb.profit * runs;
+    const profitPerWeek = profitPerDay * 7;
 
     card.innerHTML = `
         <div class="herb-header">
@@ -681,6 +697,28 @@ function createHerbCard(herb) {
             <span class="investment-text">
                 Revenue: ${formatGP(Math.round(herb.totalYield * herb.unfPotionPrice))}
             </span>
+        </div>
+
+        <div class="daily-stats">
+            <div class="daily-stats-title">Daily (${runs} runs/day)</div>
+            <div class="herb-details">
+                <div class="detail-item">
+                    <span class="detail-label">Seed Cost/Day</span>
+                    <span class="detail-value">${formatGP(seedCostPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Yield/Day</span>
+                    <span class="detail-value">${Math.round(yieldPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit/Day</span>
+                    <span class="detail-value ${profitPerDay >= 0 ? 'profit-positive' : 'profit-negative'}">${formatProfit(profitPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit/Week</span>
+                    <span class="detail-value ${profitPerWeek >= 0 ? 'profit-positive' : 'profit-negative'}">${formatProfit(profitPerWeek)}</span>
+                </div>
+            </div>
         </div>
     `;
 
@@ -755,6 +793,28 @@ function createCoralCard(coral) {
             <span class="investment-text">
                 Revenue: ${formatGP(Math.round(coral.totalYield * coral.coralPrice))}
             </span>
+        </div>
+
+        <div class="daily-stats">
+            <div class="daily-stats-title">Daily (${farmingParams.runsPerDay} runs/day)</div>
+            <div class="herb-details">
+                <div class="detail-item">
+                    <span class="detail-label">Frag Cost/Day</span>
+                    <span class="detail-value">${formatGP(coral.investment * farmingParams.runsPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Yield/Day</span>
+                    <span class="detail-value">${Math.round(coral.totalYield * farmingParams.runsPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit/Day</span>
+                    <span class="detail-value ${coral.profit * farmingParams.runsPerDay >= 0 ? 'profit-positive' : 'profit-negative'}">${formatProfit(coral.profit * farmingParams.runsPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit/Week</span>
+                    <span class="detail-value ${coral.profit * farmingParams.runsPerDay * 7 >= 0 ? 'profit-positive' : 'profit-negative'}">${formatProfit(coral.profit * farmingParams.runsPerDay * 7)}</span>
+                </div>
+            </div>
         </div>
     `;
 
