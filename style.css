@@ -340,6 +340,17 @@ body {
     color: var(--text-primary);
 }
 
+.level-req {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--background);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+}
+
 .herb-profit {
     font-size: 1.1rem;
     font-weight: 700;

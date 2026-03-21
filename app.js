@@ -33,6 +33,22 @@ const CORAL_DATA = [
 const CORAL_HARVEST_LIVES = 4;
 const CORAL_NUM_PATCHES = 2;
 
+// Allotment data: [name, seedId, cropId, lowCTS, highCTS, levelReq, protItemId, protQtyPerPatch, protDesc]
+// Note: CTS values are approximate estimates based on OSRS wiki data — verify against wiki if precision matters.
+// protItemId = null means payment is in-kind with crops and not GE-tradeable in convenient form.
+const ALLOTMENT_DATA = [
+    ['Potato',       5318,  1942,  25,  80,  1, null,  0, 'N/A'],
+    ['Onion',        5319,  1957,  25,  80,  5, null,  0, 'N/A'],
+    ['Cabbage',      5324,  1965,  25,  80,  7, null,  0, 'N/A'],
+    ['Tomato',       5322,  1982,  30, 100, 12, null,  0, 'N/A'],
+    ['Sweetcorn',    5320,  5986,  40, 120, 20, 5931, 10, '10 Jute fibres'],
+    ['Strawberry',   5323,  5504,  45, 133, 31, 5376,  1, '1 Basket of apples'],
+    ['Watermelon',   5321,  5982,  55, 155, 47, 5763, 10, '10 Curry leaves'],
+    ['Snape grass',  22879,  231,  65, 170, 61,  247,  5, '5 Jangerberries'],
+];
+const WHITE_LILY_SEED_ID = 22875; // Grown in flower patches to auto-protect adjacent allotments
+const ALLOTMENT_BASE_LIVES = 3;
+
 // Farming parameters (defaults)
 let farmingParams = {
     level: 99,
@@ -53,7 +69,11 @@ let farmingParams = {
         harmony: true,
         hosidius: true,
         civitas: false
-    }
+    },
+    // Allotment parameters
+    numAllotmentPatches: 9, // Standard areas: Falador, Ardougne, Catherby, Canifis, Port Phasmatys, Hosidius + more
+    allotmentProtection: false, // Pay gardener per patch
+    whiteLily: false,           // Grow white lily in flower patches (1 seed per 2 allotment patches)
 };
 
 // Persistence
@@ -97,12 +117,17 @@ function syncUIToParams() {
     patchHosidiusCheck.checked = farmingParams.patches.hosidius;
     patchCivitasCheck.checked = farmingParams.patches.civitas;
     document.getElementById('coralProtection').checked = farmingParams.coralProtection;
+    document.getElementById('numAllotmentPatches').value = farmingParams.numAllotmentPatches;
+    document.getElementById('numAllotmentPatchesValue').textContent = farmingParams.numAllotmentPatches;
+    document.getElementById('allotmentProtection').checked = farmingParams.allotmentProtection;
+    document.getElementById('whiteLily').checked = farmingParams.whiteLily;
 }
 
 // Global state
 let priceData = {};
 let herbsData = [];
 let coralData = [];
+let allotmentData = [];
 let currentSort = 'profit';
 let activeTab = 'herbs';
 
@@ -113,6 +138,7 @@ const lastUpdated = document.getElementById('lastUpdated');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const herbsContainer = document.getElementById('herbsContainer');
 const coralContainer = document.getElementById('coralContainer');
+const allotmentContainer = document.getElementById('allotmentContainer');
 const errorMessage = document.getElementById('errorMessage');
 const sortSelect = document.getElementById('sortSelect');
 const installPrompt = document.getElementById('installPrompt');
@@ -156,8 +182,10 @@ sortSelect.addEventListener('change', (e) => {
     currentSort = e.target.value;
     if (activeTab === 'herbs') {
         renderHerbs();
-    } else {
+    } else if (activeTab === 'coral') {
         renderCoral();
+    } else {
+        renderAllotments();
     }
 });
 
@@ -245,9 +273,27 @@ patchCivitasCheck.addEventListener('change', (e) => {
 // Tab navigation
 document.getElementById('tabHerbs').addEventListener('click', () => switchTab('herbs'));
 document.getElementById('tabCoral').addEventListener('click', () => switchTab('coral'));
+document.getElementById('tabAllotments').addEventListener('click', () => switchTab('allotments'));
 
 document.getElementById('coralProtection').addEventListener('change', (e) => {
     farmingParams.coralProtection = e.target.checked;
+    updateCalculations();
+});
+
+// Allotment parameter listeners
+document.getElementById('numAllotmentPatches').addEventListener('input', (e) => {
+    farmingParams.numAllotmentPatches = parseInt(e.target.value);
+    document.getElementById('numAllotmentPatchesValue').textContent = e.target.value;
+    updateCalculations();
+});
+
+document.getElementById('allotmentProtection').addEventListener('change', (e) => {
+    farmingParams.allotmentProtection = e.target.checked;
+    updateCalculations();
+});
+
+document.getElementById('whiteLily').addEventListener('change', (e) => {
+    farmingParams.whiteLily = e.target.checked;
     updateCalculations();
 });
 
@@ -419,6 +465,19 @@ function calculateCoralTotalYield(lowCTS, highCTS) {
     return CORAL_HARVEST_LIVES / (1 - chanceToSave) * CORAL_NUM_PATCHES;
 }
 
+function calculateAllotmentYieldPerPatch(lowCTS, highCTS) {
+    const harvestLives = ALLOTMENT_BASE_LIVES + farmingParams.compostType;
+    const chanceToSave = calculateChanceToSave(lowCTS, highCTS, farmingParams.level, 0);
+    return harvestLives / (1 - chanceToSave);
+}
+
+function calculateAllotmentTotalYield(lowCTS, highCTS) {
+    const yieldPerPatch = calculateAllotmentYieldPerPatch(lowCTS, highCTS);
+    const isProtected = farmingParams.whiteLily || farmingParams.allotmentProtection;
+    const deathRate = isProtected ? 0 : calculateDeathRate(farmingParams.compostType);
+    return yieldPerPatch * farmingParams.numAllotmentPatches * (1 - deathRate);
+}
+
 // Utility Functions
 function formatGP(amount) {
     if (!amount && amount !== 0) return 'N/A';
@@ -471,6 +530,7 @@ async function loadPrices() {
         errorMessage.classList.add('hidden');
         herbsContainer.innerHTML = '';
         coralContainer.innerHTML = '';
+        allotmentContainer.innerHTML = '';
         statusText.textContent = 'Fetching prices...';
 
         // Fetch data from API
@@ -483,13 +543,15 @@ async function loadPrices() {
         const data = await response.json();
         priceData = data.data || {};
 
-        // Process herb and coral data
+        // Process herb, coral, and allotment data
         processHerbData();
         processCoralData();
+        processAllotmentData();
 
         // Update UI
         renderHerbs();
         renderCoral();
+        renderAllotments();
         updateDisplays();
 
         // Update status
@@ -567,13 +629,63 @@ function processCoralData() {
     });
 }
 
+function processAllotmentData() {
+    allotmentData = [];
+    const whiteLilySeedPrice = getPrice(WHITE_LILY_SEED_ID);
+    const numPatches = farmingParams.numAllotmentPatches;
+    const numWhiteLilies = Math.ceil(numPatches / 2);
+    const isProtected = farmingParams.whiteLily || farmingParams.allotmentProtection;
+
+    ALLOTMENT_DATA.forEach(([name, seedId, cropId, lowCTS, highCTS, levelReq, protItemId, protQty, protDesc]) => {
+        const seedPrice = getPrice(seedId);
+        const cropPrice = getPrice(cropId);
+        if (!seedPrice || !cropPrice) return;
+
+        const protItemPrice = protItemId ? getPrice(protItemId) : null;
+        const totalYield = calculateAllotmentTotalYield(lowCTS, highCTS);
+        const yieldPerPatch = calculateAllotmentYieldPerPatch(lowCTS, highCTS);
+
+        // Seed investment per run
+        const seedCost = numPatches * seedPrice;
+
+        // White lily cost: 1 seed per 2 allotment patches (1 flower patch per area)
+        const whiteLilyCost = (farmingParams.whiteLily && whiteLilySeedPrice)
+            ? numWhiteLilies * whiteLilySeedPrice
+            : 0;
+
+        // Gardener protection cost per run (only when not using white lily, and item is GE-tradeable)
+        const protectionCost = (!farmingParams.whiteLily && farmingParams.allotmentProtection && protItemPrice && protQty > 0)
+            ? numPatches * protQty * protItemPrice
+            : 0;
+
+        const investment = seedCost + whiteLilyCost;
+        const revenue = totalYield * cropPrice;
+        const profit = revenue - investment - protectionCost;
+        const roi = investment > 0 ? (profit / investment * 100) : 0;
+
+        allotmentData.push({
+            name, levelReq,
+            seedPrice, cropPrice,
+            protItemPrice, protDesc, protQty,
+            numWhiteLilies, whiteLilyCost, whiteLilySeedPrice,
+            protectionCost,
+            seedCost, investment, revenue,
+            profit, roi,
+            totalYield, yieldPerPatch,
+            isProtected,
+        });
+    });
+}
+
 function updateCalculations() {
     saveParams();
     if (Object.keys(priceData).length > 0) {
         processHerbData();
         processCoralData();
+        processAllotmentData();
         renderHerbs();
         renderCoral();
+        renderAllotments();
         updateDisplays();
     }
 }
@@ -612,7 +724,7 @@ function updateDisplays() {
         const deathRate = calculateDeathRate(farmingParams.compostType);
         const deathRatePercent = (deathRate * 100).toFixed(1);
         formulaText.textContent = `Lvl ${farmingParams.level} | ${compostName} | ${protectedCount} protected | ${deathRatePercent}% death`;
-    } else {
+    } else if (activeTab === 'coral') {
         patchesDisplay.textContent = '2 patches';
 
         if (coralData.length > 0) {
@@ -621,6 +733,21 @@ function updateDisplays() {
         }
 
         formulaText.textContent = `Lvl ${farmingParams.level} | 4 lives (fixed) | No compost bonus`;
+    } else {
+        // Allotments
+        const numP = farmingParams.numAllotmentPatches;
+        patchesDisplay.textContent = `${numP} patches`;
+
+        if (allotmentData.length > 0) {
+            const avgYield = allotmentData.reduce((sum, a) => sum + a.totalYield, 0) / allotmentData.length;
+            yieldDisplay.textContent = `${Math.round(avgYield)} avg yield`;
+        }
+
+        const isProtected = farmingParams.whiteLily || farmingParams.allotmentProtection;
+        const protLabel = farmingParams.whiteLily ? 'White Lily' : farmingParams.allotmentProtection ? 'Gardener' : 'Unprotected';
+        const deathRate = isProtected ? 0 : calculateDeathRate(farmingParams.compostType);
+        const compostNames = ['None', 'Compost', 'Supercompost', 'Ultracompost'];
+        formulaText.textContent = `Lvl ${farmingParams.level} | ${compostNames[farmingParams.compostType]} | ${protLabel} | ${(deathRate * 100).toFixed(1)}% death`;
     }
 }
 
@@ -821,14 +948,134 @@ function createCoralCard(coral) {
     return card;
 }
 
+function sortAllotments() {
+    switch (currentSort) {
+        case 'profit':
+            allotmentData.sort((a, b) => b.profit - a.profit);
+            break;
+        case 'roi':
+            allotmentData.sort((a, b) => b.roi - a.roi);
+            break;
+        case 'name':
+            allotmentData.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'seed_price':
+            allotmentData.sort((a, b) => a.seedPrice - b.seedPrice);
+            break;
+    }
+}
+
+function renderAllotments() {
+    sortAllotments();
+    allotmentContainer.innerHTML = '';
+    allotmentData.forEach(a => allotmentContainer.appendChild(createAllotmentCard(a)));
+}
+
+function createAllotmentCard(allotment) {
+    const card = document.createElement('div');
+    card.className = `herb-card ${allotment.profit >= 0 ? 'profitable' : 'unprofitable'}`;
+
+    const runs = farmingParams.runsPerDay;
+    const profitPerDay = allotment.profit * runs;
+    const profitPerWeek = profitPerDay * 7;
+
+    let protectionLine = '';
+    if (farmingParams.whiteLily) {
+        const wlCostStr = allotment.whiteLilySeedPrice
+            ? `${formatGP(allotment.whiteLilyCost)} (${allotment.numWhiteLilies} seeds)`
+            : 'Price unavailable';
+        protectionLine = `
+            <div class="detail-item">
+                <span class="detail-label">White Lily</span>
+                <span class="detail-value">${wlCostStr}</span>
+            </div>`;
+    } else if (farmingParams.allotmentProtection && allotment.protQty > 0) {
+        const protCostStr = allotment.protItemPrice
+            ? `${formatGP(allotment.protectionCost)} (${allotment.protDesc})`
+            : `${allotment.protDesc} (price N/A)`;
+        protectionLine = `
+            <div class="detail-item">
+                <span class="detail-label">Protection</span>
+                <span class="detail-value">${protCostStr}</span>
+            </div>`;
+    } else if (farmingParams.allotmentProtection && allotment.protQty === 0) {
+        protectionLine = `
+            <div class="detail-item">
+                <span class="detail-label">Protection</span>
+                <span class="detail-value">In-kind (not tracked)</span>
+            </div>`;
+    }
+
+    card.innerHTML = `
+        <div class="herb-header">
+            <h2 class="herb-name">${allotment.name} <span class="level-req">Lv.${allotment.levelReq}</span></h2>
+            <div class="herb-profit ${allotment.profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                ${formatProfit(allotment.profit)}
+            </div>
+        </div>
+
+        <div class="herb-details">
+            <div class="detail-item">
+                <span class="detail-label">Total Yield</span>
+                <span class="detail-value">${Math.round(allotment.totalYield)} (${allotment.yieldPerPatch.toFixed(1)}/patch)</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Seed Price</span>
+                <span class="detail-value">${formatGP(allotment.seedPrice)}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Crop Price</span>
+                <span class="detail-value">${formatGP(allotment.cropPrice)}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Investment</span>
+                <span class="detail-value">${formatGP(allotment.investment)}</span>
+            </div>
+            ${protectionLine}
+        </div>
+
+        <div class="herb-footer">
+            <span class="roi-badge ${allotment.roi >= 0 ? 'roi-positive' : 'roi-negative'}">
+                ROI: ${formatROI(allotment.roi)}
+            </span>
+            <span class="investment-text">
+                Revenue: ${formatGP(Math.round(allotment.revenue))}
+            </span>
+        </div>
+
+        <div class="daily-stats">
+            <div class="daily-stats-title">Daily (${runs} runs/day) · ${allotment.isProtected ? 'Protected' : 'Unprotected'}</div>
+            <div class="herb-details">
+                <div class="detail-item">
+                    <span class="detail-label">Yield/Day</span>
+                    <span class="detail-value">${Math.round(allotment.totalYield * runs)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit/Day</span>
+                    <span class="detail-value ${profitPerDay >= 0 ? 'profit-positive' : 'profit-negative'}">${formatProfit(profitPerDay)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit/Week</span>
+                    <span class="detail-value ${profitPerWeek >= 0 ? 'profit-positive' : 'profit-negative'}">${formatProfit(profitPerWeek)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
 function switchTab(tab) {
     activeTab = tab;
     document.getElementById('tabHerbs').classList.toggle('active', tab === 'herbs');
     document.getElementById('tabCoral').classList.toggle('active', tab === 'coral');
+    document.getElementById('tabAllotments').classList.toggle('active', tab === 'allotments');
     herbsContainer.classList.toggle('hidden', tab !== 'herbs');
     coralContainer.classList.toggle('hidden', tab !== 'coral');
+    allotmentContainer.classList.toggle('hidden', tab !== 'allotments');
     document.getElementById('herbOnlyParams').classList.toggle('hidden', tab !== 'herbs');
     document.getElementById('coralOnlyParams').classList.toggle('hidden', tab !== 'coral');
+    document.getElementById('allotmentOnlyParams').classList.toggle('hidden', tab !== 'allotments');
     updateDisplays();
 }
 

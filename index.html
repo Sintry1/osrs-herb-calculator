@@ -33,6 +33,7 @@
         <div class="tab-nav">
             <button class="tab-btn active" id="tabHerbs">🌿 Herbs</button>
             <button class="tab-btn" id="tabCoral">🪸 Coral</button>
+            <button class="tab-btn" id="tabAllotments">🥕 Allotments</button>
         </div>
     </header>
 
@@ -154,6 +155,26 @@
                 </div>
             </div>
 
+            <div id="allotmentOnlyParams" class="hidden">
+                <div class="param-group">
+                    <label for="numAllotmentPatches">Allotment Patches: <span id="numAllotmentPatchesValue">9</span></label>
+                    <input type="range" id="numAllotmentPatches" min="1" max="17" value="9" class="param-slider">
+                    <small class="param-hint">Up to 17 patches across all areas (2 per standard area)</small>
+                </div>
+                <div class="param-group checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="allotmentProtection">
+                        <span>Pay Gardener (protection)</span>
+                    </label>
+                    <small class="param-hint">Deducts gardener payment per patch per run (where item is GE-tradeable)</small>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="whiteLily">
+                        <span>White Lily (auto-protects all)</span>
+                    </label>
+                    <small class="param-hint">Grows white lily in flower patches — 1 seed per 2 allotment patches. Supersedes gardener payment.</small>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -182,6 +203,11 @@
     <!-- Coral Container -->
     <main id="coralContainer" class="herbs-container hidden">
         <!-- Coral cards will be inserted here by JavaScript -->
+    </main>
+
+    <!-- Allotment Container -->
+    <main id="allotmentContainer" class="herbs-container hidden">
+        <!-- Allotment cards will be inserted here by JavaScript -->
     </main>
 
     <!-- Error Message -->
